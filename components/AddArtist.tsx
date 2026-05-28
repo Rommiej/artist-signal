@@ -49,7 +49,7 @@ export default function AddArtist() {
           "anthropic-dangerous-direct-browser-access": "true",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-5",
+          model: "claude-sonnet-4-6",
           max_tokens: 700,
           messages: [{ role: "user", content: getAnalysisPrompt(name.trim()) }],
         }),
