@@ -5,31 +5,6 @@ import { getVerdictColors } from "@/lib/artists";
 
 const QUICK = ["Pamungkas","MILLI","Phum Viphurit","yung kai","Ylona Garcia","Rich Brian","Cup of Joe"];
 
-function getAnalysisPrompt(name: string) {
-  return `You are a senior A&R analyst at Universal Music Group Asia using the Signal platform. Based on your knowledge of publicly available data about the artist "${name}", produce a Signal scoring assessment.
-
-Output EXACTLY in this format (no other text, no markdown, no backticks):
-
-SIGNAL SCORE: [number 0-100]
-VERDICT: [Priority Sign | Development Deal | Watch & Wait | Pass]
-TIER SCORES: T1 [%] · T2 [%] · T3 [%]
-
-ARTIST CONTEXT: [2-3 sentences]
-
-KEY INDICATORS:
-- [specific data point]
-- [specific data point]
-- [specific data point]
-- [specific data point]
-
-SCORING RATIONALE: [2-3 sentences]
-
-PRIMARY RISK FLAG: [1 sentence]
-PRIMARY GREEN LIGHT: [1 sentence]
-
-PUBLISHING OPPORTUNITY: [1-2 sentences]`;
-}
-
 export default function AddArtist() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,48 +15,14 @@ export default function AddArtist() {
     if (!name.trim()) return;
     setLoading(true); setResult(null); setError("");
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/analyse", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || "",
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 700,
-          messages: [{ role: "user", content: getAnalysisPrompt(name.trim()) }],
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim() }),
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error.message);
-      const raw = data.content?.[0]?.text || "";
-
-      const getField = (label: string) => {
-        const m = raw.match(new RegExp(`${label}:\\s*([\\s\\S]+?)(?=\\n[A-Z][A-Z ]+:|$)`));
-        return m ? m[1].trim() : "";
-      };
-      const scoreMatch = raw.match(/SIGNAL SCORE:\s*(\d+)/);
-      const verdictMatch = raw.match(/VERDICT:\s*(.+)/);
-      const tierMatch = raw.match(/TIER SCORES:\s*(.+)/);
-      const bulletsMatch = raw.match(/KEY INDICATORS:\s*([\s\S]+?)(?=\n[A-Z][A-Z ]+:|$)/);
-      const indicators = bulletsMatch
-        ? bulletsMatch[1].split("\n").map((l: string) => l.replace(/^[•\-*]\s*/, "").trim()).filter(Boolean)
-        : [];
-
-      setResult({
-        name,
-        score: scoreMatch ? parseInt(scoreMatch[1]) : 50,
-        verdict: (verdictMatch ? verdictMatch[1].trim() : "Watch & Wait") as any,
-        tierScores: tierMatch ? tierMatch[1].trim() : "T1 —% · T2 —% · T3 —%",
-        context: getField("ARTIST CONTEXT"),
-        indicators,
-        rationale: getField("SCORING RATIONALE"),
-        riskFlag: getField("PRIMARY RISK FLAG"),
-        greenLight: getField("PRIMARY GREEN LIGHT"),
-        publishingOpportunity: getField("PUBLISHING OPPORTUNITY"),
-      });
+      if (data.error) throw new Error(data.error);
+      setResult(data);
     } catch { setError("Analysis failed. Please try again."); }
     finally { setLoading(false); }
   };

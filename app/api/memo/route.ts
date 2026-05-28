@@ -2,13 +2,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    
-    if (!apiKey) {
-      return NextResponse.json({ error: "No API key found" }, { status: 500 });
-    }
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: "ANTHROPIC_API_KEY is not set" }, { status: 500 });
+  }
 
+  try {
     const { prompt } = await request.json();
     if (!prompt) {
       return NextResponse.json({ error: "No prompt provided" }, { status: 400 });
@@ -17,7 +16,7 @@ export async function POST(request: NextRequest) {
     const client = new Anthropic({ apiKey });
 
     const message = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 1024,
       messages: [{ role: "user", content: prompt }],
     });
