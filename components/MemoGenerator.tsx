@@ -17,7 +17,7 @@ function renderMemo(text: string) {
       );
     } else if (line.startsWith("## ")) {
       elements.push(
-        <div key={key++} style={{ fontFamily: "monospace", fontSize: 9, letterSpacing: "0.12em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginTop: 20, marginBottom: 8, paddingTop: 12, borderTop: "0.5px solid rgba(255,255,255,0.07)" }}>
+        <div key={key++} style={{ fontFamily: "monospace", fontSize: 11, letterSpacing: "0.1em", color: "#7A9CC8", textTransform: "uppercase", fontWeight: 600, marginTop: 24, marginBottom: 10, paddingTop: 16, borderTop: "0.5px solid rgba(255,255,255,0.1)" }}>
           {line.replace("## ", "")}
         </div>
       );
