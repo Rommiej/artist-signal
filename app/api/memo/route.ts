@@ -1,14 +1,20 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 export async function POST(request: NextRequest) {
   try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    
+    if (!apiKey) {
+      return NextResponse.json({ error: "No API key found" }, { status: 500 });
+    }
+
     const { prompt } = await request.json();
     if (!prompt) {
       return NextResponse.json({ error: "No prompt provided" }, { status: 400 });
     }
+
+    const client = new Anthropic({ apiKey });
 
     const message = await client.messages.create({
       model: "claude-sonnet-4-20250514",
@@ -24,10 +30,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ content });
   } catch (err) {
-    console.error("Memo generation error:", err);
-    return NextResponse.json(
-      { error: "Failed to generate memo" },
-      { status: 500 }
-    );
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
