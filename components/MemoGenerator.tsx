@@ -10,16 +10,30 @@ export default function MemoGenerator({ prompt, artistName }: { prompt: string; 
   const generate = async () => {
     setLoading(true); setMemo(""); setError("");
     try {
-      const res = await fetch("/api/memo", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || "",
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1024,
+          messages: [{ role: "user", content: prompt }],
+        }),
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setMemo(data.content);
+      if (data.error) throw new Error(data.error.message);
+      const content = data.content?.[0]?.text || "Unable to generate memo.";
+      setMemo(content);
       setGenerated(true);
-    } catch { setError("Failed to generate memo. Please try again."); }
-    finally { setLoading(false); }
+    } catch (e) {
+      setError("Failed to generate memo. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
