@@ -253,7 +253,7 @@ export default function App() {
   return (
     <div style={{ minHeight: "100vh", background: "#060D1C" }}>
       <Header />
-      <main style={{ maxWidth: 760, margin: "0 auto", padding: "32px 20px" }}>
+      <main style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 20px" }}>
         {selected ? (
           <ArtistProfile artist={selected} onBack={() => setSelected(null)} />
         ) : (
