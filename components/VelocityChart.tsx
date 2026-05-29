@@ -12,7 +12,7 @@ function fmt(n: number) {
   return n + "K";
 }
 
-export default function VelocityChart({ data, color = "#2B7FE8" }: VelocityChartProps) {
+export default function VelocityChart({ data, color = "#2B5FD9" }: VelocityChartProps) {
   const W = 620, H = 156, PL = 46, PR = 14, PT = 14, PB = 26;
   const chartW = W - PL - PR;
   const chartH = H - PT - PB;
@@ -31,44 +31,33 @@ export default function VelocityChart({ data, color = "#2B7FE8" }: VelocityChart
         aria-label="Streaming velocity line chart">
         <defs>
           <linearGradient id={`vg-${color.replace("#","")}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.14"/>
+            <stop offset="0%" stopColor={color} stopOpacity="0.12"/>
             <stop offset="100%" stopColor={color} stopOpacity="0"/>
           </linearGradient>
         </defs>
-
         {ticks.map((tick) => (
           <g key={tick}>
-            <line x1={PL} y1={toY(tick)} x2={W - PR} y2={toY(tick)}
-              stroke="rgba(255,255,255,0.05)" strokeWidth="1"/>
-            <text x={PL - 5} y={toY(tick) + 4} fontSize="9" fill="rgba(255,255,255,0.22)"
-              textAnchor="end" fontFamily="monospace">{fmt(tick)}</text>
+            <line x1={PL} y1={toY(tick)} x2={W - PR} y2={toY(tick)} stroke="#E8ECF4" strokeWidth="1"/>
+            <text x={PL - 5} y={toY(tick) + 4} fontSize="9" fill="#8E9BBF" textAnchor="end" fontFamily="monospace">{fmt(tick)}</text>
           </g>
         ))}
-
-        <line x1={PL} y1={thresholdY} x2={W - PR} y2={thresholdY}
-          stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" strokeDasharray="4 3"/>
-        <text x={W - PR + 3} y={thresholdY + 4} fontSize="8" fill="rgba(255,255,255,0.2)" fontFamily="monospace">500K</text>
-
+        <line x1={PL} y1={thresholdY} x2={W - PR} y2={thresholdY} stroke="#C4CEEA" strokeWidth="0.8" strokeDasharray="4 3"/>
+        <text x={W - PR + 3} y={thresholdY + 4} fontSize="8" fill="#8E9BBF" fontFamily="monospace">500K</text>
         <path d={areaD} fill={`url(#vg-${color.replace("#","")})`}/>
         <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-
         {data.map((v, i) => {
           const isPeak = i === peakIdx;
           return isPeak ? (
             <g key={i}>
               <circle cx={toX(i)} cy={toY(v)} r={4} fill={color}/>
-              <text x={toX(i)} y={toY(v) - 9} fontSize="9" fill={color}
-                textAnchor="middle" fontFamily="monospace" fontWeight="500">{fmt(v)}</text>
+              <text x={toX(i)} y={toY(v) - 9} fontSize="9" fill={color} textAnchor="middle" fontFamily="monospace" fontWeight="600">{fmt(v)}</text>
             </g>
           ) : (
-            <circle key={i} cx={toX(i)} cy={toY(v)} r={1.8}
-              fill="#060D1C" stroke={color} strokeWidth="1.2"/>
+            <circle key={i} cx={toX(i)} cy={toY(v)} r={1.8} fill="#FFFFFF" stroke={color} strokeWidth="1.2"/>
           );
         })}
-
         {WEEKS.map((w, i) => i % 2 === 0 && (
-          <text key={w} x={toX(i)} y={H - 4} fontSize="9" fill="rgba(255,255,255,0.2)"
-            textAnchor="middle" fontFamily="monospace">{w}</text>
+          <text key={w} x={toX(i)} y={H - 4} fontSize="9" fill="#8E9BBF" textAnchor="middle" fontFamily="monospace">{w}</text>
         ))}
       </svg>
     </div>

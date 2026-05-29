@@ -178,7 +178,7 @@ Tone: Commercially honest. The language gap was the defining variable. Be direct
     t1: 48, t2: 50, t3: 38,
     retroDate: "June 2021",
     retroNote: '"Paraluman" hits #1 on Spotify Philippines Viral 50. His second-ever released song. MV reaches 1.8M YouTube views in 7 days.',
-    tags: ['Only 2nd song', "Filipino language", "O/C Records", "Self-written", "Zero live history"],
+    tags: ["Only 2nd song", "Filipino language", "O/C Records", "Self-written", "Zero live history"],
     metrics: [
       { label: "Spotify at scoring", value: "~1M", sub: '"Paraluman" in velocity' },
       { label: '"Paraluman" streams', value: "100M+", sub: "Spotify total", highlight: true },
@@ -254,14 +254,14 @@ export function getArtistById(id: string) {
 export function getVerdictColors(verdict: string) {
   switch (verdict) {
     case "Priority Sign":
-      return { text: "text-sig-green", hex: "#00C776", dimBg: "rgba(0,199,118,0.1)", lineBorder: "rgba(0,199,118,0.25)" };
+      return { text: "text-sig-green", hex: "#157A52", dimBg: "#E6F5EE", lineBorder: "#B8E5D0" };
     case "Development Deal":
-      return { text: "text-umg-blue", hex: "#2B7FE8", dimBg: "rgba(43,127,232,0.12)", lineBorder: "rgba(43,127,232,0.3)" };
+      return { text: "text-umg-blue", hex: "#2B5FD9", dimBg: "#EEF3FE", lineBorder: "#D0DEFA" };
     case "Watch & Wait":
-      return { text: "text-sig-amber", hex: "#F0A000", dimBg: "rgba(240,160,0,0.1)", lineBorder: "rgba(240,160,0,0.25)" };
+      return { text: "text-sig-amber", hex: "#A05C0A", dimBg: "#FEF3E2", lineBorder: "#FAD898" };
     case "Pass":
-      return { text: "text-sig-red", hex: "#E04848", dimBg: "rgba(224,72,72,0.1)", lineBorder: "rgba(224,72,72,0.25)" };
+      return { text: "text-sig-red", hex: "#C0392B", dimBg: "#FDECEA", lineBorder: "#F5B8B3" };
     default:
-      return { text: "text-ink-secondary", hex: "#7A8DAA", dimBg: "rgba(122,141,170,0.1)", lineBorder: "rgba(122,141,170,0.2)" };
+      return { text: "text-ink-secondary", hex: "#5A6A99", dimBg: "#F4F7FC", lineBorder: "#D0D8EE" };
   }
 }

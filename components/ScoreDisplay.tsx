@@ -19,17 +19,15 @@ export default function ScoreDisplay({ score, verdict, size = "md", showVerdict 
   const cy = d / 2;
   const total = 2 * Math.PI * r * 0.75;
   const filled = total * pct;
-
   const fz = { sm: "text-[18px]", md: "text-[24px]", lg: "text-[30px]" };
 
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="relative" style={{ width: d, height: d }}>
-        <svg width={d} height={d} viewBox={`0 0 ${d} ${d}`}
-          className="-rotate-[225deg]"
+        <svg width={d} height={d} viewBox={`0 0 ${d} ${d}`} className="-rotate-[225deg]"
           aria-label={`Signal score ${score} out of 100`}>
           <circle cx={cx} cy={cy} r={r} fill="none"
-            stroke="rgba(255,255,255,0.07)" strokeWidth={sw}
+            stroke="#D0D8EE" strokeWidth={sw}
             strokeDasharray={`${total} ${2 * Math.PI * r}`}
             strokeDashoffset="-10" strokeLinecap="round"/>
           <circle cx={cx} cy={cy} r={r} fill="none"
@@ -39,7 +37,7 @@ export default function ScoreDisplay({ score, verdict, size = "md", showVerdict 
             style={{ transition: "stroke-dasharray 0.5s ease" }}/>
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className={`${fz[size]} font-medium leading-none`} style={{ color: colors.hex }}>
+          <span className={`${fz[size]} font-bold leading-none`} style={{ color: colors.hex }}>
             {score}
           </span>
           {size === "lg" && (

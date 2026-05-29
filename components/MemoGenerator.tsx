@@ -5,42 +5,38 @@ function renderMemo(text: string) {
   const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
   let key = 0;
-
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-
     if (line.startsWith("# ")) {
       elements.push(
-        <div key={key++} style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: "0.12em", color: "#2B7FE8", textTransform: "uppercase", marginBottom: 4 }}>
+        <div key={key++} style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: "0.12em", color: "#2B5FD9", textTransform: "uppercase" as const, marginBottom: 4 }}>
           {line.replace("# ", "")}
         </div>
       );
     } else if (line.startsWith("## ")) {
       elements.push(
-        <div key={key++} style={{ fontFamily: "monospace", fontSize: 11, letterSpacing: "0.1em", color: "#7A9CC8", textTransform: "uppercase", fontWeight: 600, marginTop: 24, marginBottom: 10, paddingTop: 16, borderTop: "0.5px solid rgba(255,255,255,0.1)" }}>
+        <div key={key++} style={{ fontFamily: "monospace", fontSize: 11, letterSpacing: "0.08em", color: "#5A6A99", textTransform: "uppercase" as const, fontWeight: 700, marginTop: 22, marginBottom: 8, paddingTop: 14, borderTop: "0.5px solid #D0D8EE" }}>
           {line.replace("## ", "")}
         </div>
       );
     } else if (line.startsWith("---")) {
-      // skip horizontal rules
+      // skip
     } else if (line.trim() === "") {
-      elements.push(<div key={key++} style={{ height: 8 }} />);
+      elements.push(<div key={key++} style={{ height: 6 }} />);
     } else {
-      // Parse inline bold **text**
       const parts = line.split(/\*\*(.+?)\*\*/g);
       const rendered = parts.map((part, idx) =>
         idx % 2 === 1
-          ? <span key={idx} style={{ color: "#F0F4FF", fontWeight: 500 }}>{part}</span>
+          ? <span key={idx} style={{ color: "#0D1633", fontWeight: 600 }}>{part}</span>
           : <span key={idx}>{part}</span>
       );
       elements.push(
-        <p key={key++} style={{ fontSize: 13, color: "#7A8DAA", lineHeight: 1.8, margin: "0 0 4px" }}>
+        <p key={key++} style={{ fontSize: 13, color: "#5A6A99", lineHeight: 1.8, margin: "0 0 4px" }}>
           {rendered}
         </p>
       );
     }
   }
-
   return elements;
 }
 
@@ -69,8 +65,6 @@ export default function MemoGenerator({ prompt, artistName }: { prompt: string; 
     }
   };
 
-  const copy = () => navigator.clipboard.writeText(memo);
-
   return (
     <div>
       <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
@@ -79,34 +73,30 @@ export default function MemoGenerator({ prompt, artistName }: { prompt: string; 
         </p>
         <div className="flex gap-2 flex-shrink-0">
           {generated && (
-            <button onClick={copy} className="text-[12px]">Copy plain text</button>
+            <button onClick={() => navigator.clipboard.writeText(memo)} className="text-[12px]">Copy</button>
           )}
           <button onClick={generate} disabled={loading} className="primary text-[13px]">
             {loading ? "Drafting..." : generated ? "Regenerate →" : `Generate ${artistName} memo →`}
           </button>
         </div>
       </div>
-
       {loading && (
-        <div className="flex items-center gap-2.5 py-6" style={{ borderTop: "0.5px solid rgba(255,255,255,0.06)" }}>
-          <div className="w-[5px] h-[5px] rounded-full bg-sig-green" style={{ animation: "pulse 1.8s ease-in-out infinite" }} />
+        <div className="flex items-center gap-2.5 py-6" style={{ borderTop: "0.5px solid #D0D8EE" }}>
+          <div className="w-[6px] h-[6px] rounded-full bg-sig-green" style={{ animation: "pulse 1.8s ease-in-out infinite" }}/>
           <span className="text-[12px] text-ink-secondary">Drafting A&R intelligence memo for Universal Music Asia...</span>
         </div>
       )}
-
       {error && !loading && (
-        <p className="text-[12px] text-sig-red pt-4" style={{ borderTop: "0.5px solid rgba(255,255,255,0.06)" }}>{error}</p>
+        <p className="text-[12px] text-sig-red pt-4" style={{ borderTop: "0.5px solid #D0D8EE" }}>{error}</p>
       )}
-
       {memo && !loading && (
-        <div className="pt-4" style={{ borderTop: "0.5px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ background: "#0A1528", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "20px 24px" }}>
+        <div className="pt-4" style={{ borderTop: "0.5px solid #D0D8EE" }}>
+          <div style={{ background: "#F4F7FC", border: "0.5px solid #D0D8EE", borderRadius: 10, padding: "20px 24px" }}>
             {renderMemo(memo)}
           </div>
         </div>
       )}
-
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
     </div>
   );
 }
