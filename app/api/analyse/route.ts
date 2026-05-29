@@ -36,7 +36,7 @@ PUBLISHING OPPORTUNITY: [1-2 sentences on what the specific publishing rights op
 If you have limited knowledge of this artist, note that in the Artist Context section and score conservatively. Always output the complete format.`;
 
     const message = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 700,
       messages: [{ role: "user", content: prompt }],
     });
