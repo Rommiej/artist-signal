@@ -16,7 +16,7 @@ const SAREGAMA = {
   owner: "RP-Sanjiv Goenka Group (BSE: 532163)",
   description: "India's oldest music label — founded 1901 as The Gramophone Company of India. Catalog of 1.3M+ songs spanning Hindi film music (1930s–present), regional language content across 14 Indian languages, ghazals, Hindustani and Carnatic classical, and devotional music. Unlike most international labels, Saregama owns both master recording and publishing rights across its catalog. FY2025 revenue ₹1,171 crore (46% YoY growth). International revenue: 30.11% of total (~$42M USD). Music licensing: 51.61% of total turnover. Subsidiaries in UK, USA, and Dubai.",
   catalogSize: 1300000,
-  rightsType: "master_publishing" as const,
+  rightsType: "master_publishing" as RightsType,
   ageProfile: "Heritage-weighted — 60% pre-1990, 25% 1990–2010, 15% post-2010",
   primaryLanguage: "Hindi (primary) + 13 regional languages",
   baseNPS: 20000000,
@@ -180,7 +180,7 @@ function WorldMap({ territories }: { territories: Territory[] }) {
 }
 
 export default function DealsPage() {
-  const [catalog, setCatalog] = useState({ ...SAREGAMA });
+  const [catalog, setCatalog] = useState<typeof SAREGAMA & { rightsType: RightsType }>({ ...SAREGAMA });
   const [territories, setTerritories] = useState<Territory[]>(SAREGAMA_TERRITORIES.map(t => ({ ...t })));
   const [termYears, setTermYears] = useState(3);
   const [ownerSplit, setOwnerSplit] = useState(75);
