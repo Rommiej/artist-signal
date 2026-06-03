@@ -189,6 +189,99 @@ function WorldMap({ territories }: { territories: Territory[] }) {
   );
 }
 
+const STREAM_DATA: Record<string, { label: string; pct: number; color: string; note: string }[]> = {
+  GB:  [{ label: "Performance",  pct: 58, color: "#2B5FD9", note: "PRS — BBC Asian Network, Sunrise Radio" },{ label: "Mechanical",    pct: 28, color: "#157A52", note: "MCPS — Spotify/Apple Music streaming" },{ label: "Sync",          pct:  3, color: "#A05C0A", note: "Currently near-zero — biggest UMG uplift" },{ label: "Neighbouring", pct: 11, color: "#6B3FD9", note: "PPL — broadcast master royalties" }],
+  US:  [{ label: "Performance",  pct: 52, color: "#2B5FD9", note: "ASCAP/BMI — South Asian radio + streaming" },{ label: "Mechanical",    pct: 35, color: "#157A52", note: "MLC — digital mechanical" },{ label: "Sync",          pct:  2, color: "#A05C0A", note: "Passive only — no active placement" },{ label: "Neighbouring", pct: 11, color: "#6B3FD9", note: "SoundExchange — digital radio masters" }],
+  AE:  [{ label: "Performance",  pct: 44, color: "#2B5FD9", note: "MCSC — limited reciprocal agreements" },{ label: "Mechanical",    pct: 48, color: "#157A52", note: "Anghami + Spotify dominant" },{ label: "Sync",          pct:  1, color: "#A05C0A", note: "Effectively zero" },{ label: "Neighbouring", pct:  7, color: "#6B3FD9", note: "Weak collection infrastructure" }],
+  CA:  [{ label: "Performance",  pct: 55, color: "#2B5FD9", note: "SOCAN — strong Punjabi community radio" },{ label: "Mechanical",    pct: 30, color: "#157A52", note: "CMRRA — digital mechanical" },{ label: "Sync",          pct:  3, color: "#A05C0A", note: "Minor — some Canadian TV placement" },{ label: "Neighbouring", pct: 12, color: "#6B3FD9", note: "Re:Sound — broadcast masters" }],
+  AU:  [{ label: "Performance",  pct: 60, color: "#2B5FD9", note: "APRA — South Asian community radio" },{ label: "Mechanical",    pct: 28, color: "#157A52", note: "AMCOS — digital mechanical" },{ label: "Sync",          pct:  2, color: "#A05C0A", note: "Minimal" },{ label: "Neighbouring", pct: 10, color: "#6B3FD9", note: "PPCA — broadcast masters" }],
+  SG:  [{ label: "Performance",  pct: 50, color: "#2B5FD9", note: "COMPASS — SEA diaspora" },{ label: "Mechanical",    pct: 42, color: "#157A52", note: "High streaming penetration" },{ label: "Sync",          pct:  1, color: "#A05C0A", note: "Effectively zero" },{ label: "Neighbouring", pct:  7, color: "#6B3FD9", note: "Limited infrastructure" }],
+  ROW: [{ label: "Performance",  pct: 55, color: "#2B5FD9", note: "Various collection societies" },{ label: "Mechanical",    pct: 35, color: "#157A52", note: "Digital streaming" },{ label: "Sync",          pct:  1, color: "#A05C0A", note: "Minimal" },{ label: "Neighbouring", pct:  9, color: "#6B3FD9", note: "Variable" }],
+};
+
+function TerritorySection({ territories, catalog, ownerSplit }: { territories: Territory[]; catalog: typeof SAREGAMA; ownerSplit: number }) {
+  const [view, setView] = useState<"amounts" | "streams">("amounts");
+  const totalCollected = catalog.baseNPS * territories.reduce((a, tt) => a + tt.share * tt.collection / 10000, 0);
+
+  return (
+    <div style={{ ...CARD, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" as const, color: C.ink3 }}>
+          {view === "amounts" ? "Territory revenue contribution — base case year 1" : "Revenue stream breakdown by territory"}
+        </div>
+        <div style={{ display: "flex", gap: 4 }}>
+          <button onClick={() => setView("amounts")} style={{ fontSize: 11, padding: "4px 10px", background: view === "amounts" ? C.blueLt : C.card, color: view === "amounts" ? C.blue : C.ink2, border: `0.5px solid ${view === "amounts" ? C.blueMd : C.border}`, borderRadius: 6 }}>
+            Revenue amounts
+          </button>
+          <button onClick={() => setView("streams")} style={{ fontSize: 11, padding: "4px 10px", background: view === "streams" ? C.blueLt : C.card, color: view === "streams" ? C.blue : C.ink2, border: `0.5px solid ${view === "streams" ? C.blueMd : C.border}`, borderRadius: 6 }}>
+            Revenue streams
+          </button>
+        </div>
+      </div>
+
+      {view === "amounts" ? (
+        <>
+          <WorldMap territories={territories} />
+          <div style={{ marginTop: 10, display: "flex", flexDirection: "column" as const }}>
+            {territories.map(t => {
+              const annualNPS = catalog.baseNPS * (t.share / 100) * (t.collection / 100);
+              const ownerAmt = annualNPS * ownerSplit / 100;
+              const pctOfTotal = totalCollected > 0 ? (annualNPS / totalCollected) * 100 : 0;
+              return (
+                <div key={t.code} style={{ display: "grid", gridTemplateColumns: "130px 1fr 68px 68px", gap: "0 8px", alignItems: "center", padding: "4px 0", borderBottom: `0.5px solid ${C.border}` }}>
+                  <span style={{ fontSize: 11, color: C.ink1, fontWeight: 500 }}>{t.name}</span>
+                  <div style={{ height: 4, background: C.border, borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${Math.min(100, Math.round(pctOfTotal))}%`, background: C.blue, borderRadius: 2 }} />
+                  </div>
+                  <span style={{ fontSize: 10, color: C.ink2, textAlign: "right" as const }}>{fmt(annualNPS)}</span>
+                  <span style={{ fontSize: 10, color: C.green, textAlign: "right" as const, fontWeight: 600 }}>{fmt(ownerAmt)}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 10, color: C.ink3, marginTop: 6, fontFamily: "monospace" }}>Gross NPS per territory → Saregama share ({ownerSplit}%)</div>
+        </>
+      ) : (
+        <>
+          {/* Legend */}
+          <div style={{ display: "flex", gap: 14, marginBottom: 12, flexWrap: "wrap" as const }}>
+            {[["Performance", "#2B5FD9"], ["Mechanical", "#157A52"], ["Sync", "#A05C0A"], ["Neighbouring rights", "#6B3FD9"]].map(([label, color]) => (
+              <div key={label} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.ink2 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
+                {label}
+              </div>
+            ))}
+          </div>
+          {/* Cards grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            {territories.filter(t => t.code !== "ROW").map(t => {
+              const streams = STREAM_DATA[t.code] || STREAM_DATA.ROW;
+              return (
+                <div key={t.code} style={{ background: C.raised, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: C.ink1, marginBottom: 1 }}>{t.name}</div>
+                  <div style={{ fontSize: 10, color: C.ink3, fontFamily: "monospace", marginBottom: 8 }}>{t.share}% of intl revenue</div>
+                  {streams.map(s => (
+                    <div key={s.label} title={s.note} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+                      <span style={{ fontSize: 10, color: C.ink2, width: 82, flexShrink: 0 }}>{s.label}</span>
+                      <div style={{ flex: 1, height: 6, background: C.border, borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${s.pct}%`, background: s.color, borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontSize: 10, fontWeight: 600, width: 26, textAlign: "right" as const, color: s.color }}>{s.pct}%</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 10, color: C.ink3, marginTop: 10, fontFamily: "monospace", lineHeight: 1.6 }}>
+            Splits estimated from collection society data and industry benchmarks. Hover bars for source notes. Sync near-zero under passive admin — UMG active sub-pub targets 12–18% in UK/USA by year 2.
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function DealsPage() {
   const [catalog, setCatalog] = useState({ ...SAREGAMA });
   const [territories, setTerritories] = useState<Territory[]>(SAREGAMA_TERRITORIES.map(t => ({ ...t })));
@@ -520,30 +613,8 @@ export default function DealsPage() {
               </div>
             </div>
 
-            {/* World map */}
-            <div style={{ ...CARD, marginBottom: 12 }}>
-              <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" as const, color: C.ink3, marginBottom: 10 }}>Territory revenue contribution — base case year 1</div>
-              <WorldMap territories={territories} />
-              <div style={{ marginTop: 10, display: "flex", flexDirection: "column" as const, gap: 0 }}>
-                {territories.map(t => {
-                  const annualNPS = catalog.baseNPS * (t.share/100) * (t.collection/100);
-                  const ownerAmt = annualNPS * ownerSplit / 100;
-                  const totalCollected = catalog.baseNPS * territories.reduce((a,tt)=>a+tt.share*tt.collection/10000, 0);
-                  const pctOfTotal = totalCollected > 0 ? (annualNPS / totalCollected) * 100 : 0;
-                  return (
-                    <div key={t.code} style={{ display: "grid", gridTemplateColumns: "130px 1fr 68px 68px", gap: "0 8px", alignItems: "center", padding: "4px 0", borderBottom: `0.5px solid ${C.border}` }}>
-                      <span style={{ fontSize: 11, color: C.ink1, fontWeight: 500 }}>{t.name}</span>
-                      <div style={{ height: 4, background: C.border, borderRadius: 2, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${Math.min(100, Math.round(pctOfTotal))}%`, background: C.blue, borderRadius: 2 }} />
-                      </div>
-                      <span style={{ fontSize: 10, color: C.ink2, textAlign: "right" as const }}>{fmt(annualNPS)}</span>
-                      <span style={{ fontSize: 10, color: C.green, textAlign: "right" as const, fontWeight: 600 }}>{fmt(ownerAmt)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={{ fontSize: 10, color: C.ink3, marginTop: 6, fontFamily: "monospace" }}>Gross NPS per territory → Saregama share ({ownerSplit}%)</div>
-            </div>
+            {/* World map + stream breakdown */}
+            <TerritorySection territories={territories} catalog={catalog} ownerSplit={ownerSplit} />
 
             {/* Sensitivity table */}
             <div style={{ ...CARD, marginBottom: 12 }}>
