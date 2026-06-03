@@ -126,63 +126,62 @@ function renderMemo(text: string) {
 }
 
 function WorldMap({ territories }: { territories: Territory[] }) {
+  const svgRef = useRef<SVGSVGElement>(null);
   const W = 620, H = 290;
-  const [worldPaths, setWorldPaths] = useState<string[]>([]);
   const maxShare = Math.max(...territories.map(t => t.share));
-
-  function project(lat: number, lng: number): [number, number] {
-    const x = (lng + 180) * (W / 360);
-    const latRad = (lat * Math.PI) / 180;
-    const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
-    const y = H / 2 - (H * mercN) / (2 * Math.PI);
-    return [Math.round(x), Math.round(Math.max(10, Math.min(H - 10, y)))];
-  }
+  const [bubbles, setBubbles] = useState<{code:string;x:number;y:number;share:number}[]>([]);
+  const [worldPaths, setWorldPaths] = useState<string[]>([]);
 
   useEffect(() => {
     fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
       .then(r => r.json())
       .then(world => {
         if (typeof window === "undefined") return;
-        const loadD3 = () => {
+        const ensureD3 = (cb: () => void) => {
+          if ((window as any).d3) { cb(); return; }
           const s = document.createElement("script");
           s.src = "https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js";
-          s.onload = () => {
-            const loadTopo = () => {
-              const s2 = document.createElement("script");
-              s2.src = "https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js";
-              s2.onload = () => {
-                const d3 = (window as any).d3;
-                const topojson = (window as any).topojson;
-                if (!d3 || !topojson) return;
-                const proj = d3.geoNaturalEarth1().scale(95).translate([W / 2, H / 2]);
-                const pathGen = d3.geoPath(proj);
-                const countries = topojson.feature(world, world.objects.countries);
-                setWorldPaths(countries.features.map((f: any) => pathGen(f)).filter(Boolean));
-              };
-              document.head.appendChild(s2);
-            };
-            loadTopo();
-          };
+          s.onload = cb;
           document.head.appendChild(s);
         };
-        loadD3();
+        const ensureTopo = (cb: () => void) => {
+          if ((window as any).topojson) { cb(); return; }
+          const s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js";
+          s.onload = cb;
+          document.head.appendChild(s);
+        };
+        ensureD3(() => ensureTopo(() => {
+          const d3 = (window as any).d3;
+          const topojson = (window as any).topojson;
+          if (!d3 || !topojson) return;
+          const proj = d3.geoNaturalEarth1().scale(95).translate([W / 2, H / 2]);
+          const pathGen = d3.geoPath(proj);
+          const countries = topojson.feature(world, world.objects.countries);
+          setWorldPaths(countries.features.map((f: any) => pathGen(f)).filter(Boolean));
+          // Use the SAME projection for bubble placement
+          const newBubbles = territories
+            .filter(t => t.code !== "ROW")
+            .map(t => {
+              const [x, y] = proj([t.lng, t.lat]);
+              return { code: t.code, x: Math.round(x), y: Math.round(y), share: t.share };
+            });
+          setBubbles(newBubbles);
+        }));
       }).catch(() => {});
-  }, []);
-
-  const nonROW = territories.filter(t => t.code !== "ROW");
+  }, [territories]);
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block", background: C.raised, borderRadius: 8 }} aria-label="World map showing territory revenue contribution">
-      {worldPaths.map((d, i) => <path key={i} d={d} fill={C.border} stroke={C.card} strokeWidth="0.4" />)}
+    <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block", background: C.raised, borderRadius: 8 }} aria-label="World map showing territory revenue contribution">
       {worldPaths.length === 0 && <text x={W/2} y={H/2} textAnchor="middle" fontSize="11" fill={C.ink3} fontFamily="monospace">Loading map...</text>}
-      {nonROW.map(t => {
-        const [x, y] = project(t.lat, t.lng);
-        const r = Math.max(8, Math.round(Math.sqrt(t.share / maxShare) * 26));
+      {worldPaths.map((d, i) => <path key={i} d={d} fill={C.border} stroke={C.card} strokeWidth="0.4" />)}
+      {bubbles.map(b => {
+        const r = Math.max(8, Math.round(Math.sqrt(b.share / maxShare) * 26));
         return (
-          <g key={t.code}>
-            <circle cx={x} cy={y} r={r} fill={C.blue} fillOpacity={0.12} stroke={C.blue} strokeWidth="1.5" />
-            <circle cx={x} cy={y} r={Math.round(r * 0.42)} fill={C.blue} fillOpacity={0.65} />
-            <text x={x} y={y + r + 11} textAnchor="middle" fontSize="9" fill={C.ink2} fontFamily="monospace" fontWeight="600">{t.share}%</text>
+          <g key={b.code}>
+            <circle cx={b.x} cy={b.y} r={r} fill={C.blue} fillOpacity={0.12} stroke={C.blue} strokeWidth="1.5" />
+            <circle cx={b.x} cy={b.y} r={Math.round(r * 0.42)} fill={C.blue} fillOpacity={0.65} />
+            <text x={b.x} y={b.y + r + 11} textAnchor="middle" fontSize="9" fill={C.ink2} fontFamily="monospace" fontWeight="600">{b.share}%</text>
           </g>
         );
       })}
