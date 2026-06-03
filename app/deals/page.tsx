@@ -199,6 +199,15 @@ const STREAM_DATA: Record<string, { label: string; pct: number; color: string; n
   ROW: [{ label: "Performance",  pct: 55, color: "#2B5FD9", note: "Various collection societies" },{ label: "Mechanical",    pct: 35, color: "#157A52", note: "Digital streaming" },{ label: "Sync",          pct:  1, color: "#A05C0A", note: "Minimal" },{ label: "Neighbouring", pct:  9, color: "#6B3FD9", note: "Variable" }],
 };
 
+function ConfTag({ type }: { type: "verified" | "estimated" }) {
+  const isV = type === "verified";
+  return (
+    <span style={{ fontFamily: "monospace", fontSize: 8, fontWeight: 700, padding: "1px 5px", borderRadius: 4, background: isV ? "#E6F5EE" : "#EEF3FE", color: isV ? "#157A52" : "#2B5FD9", border: `0.5px solid ${isV ? "#B8E5D0" : "#D0DEFA"}`, flexShrink: 0, whiteSpace: "nowrap" as const }}>
+      {isV ? "VERIFIED" : "ESTIMATED"}
+    </span>
+  );
+}
+
 function TerritorySection({ territories, catalog, ownerSplit }: { territories: Territory[]; catalog: typeof SAREGAMA; ownerSplit: number }) {
   const [view, setView] = useState<"amounts" | "streams">("amounts");
   const totalCollected = catalog.baseNPS * territories.reduce((a, tt) => a + tt.share * tt.collection / 10000, 0);
@@ -228,29 +237,34 @@ function TerritorySection({ territories, catalog, ownerSplit }: { territories: T
               const ownerAmt = annualNPS * ownerSplit / 100;
               const pctOfTotal = totalCollected > 0 ? (annualNPS / totalCollected) * 100 : 0;
               return (
-                <div key={t.code} style={{ display: "grid", gridTemplateColumns: "130px 1fr 68px 68px", gap: "0 8px", alignItems: "center", padding: "4px 0", borderBottom: `0.5px solid ${C.border}` }}>
+                <div key={t.code} style={{ display: "grid", gridTemplateColumns: "130px 1fr 68px 68px 75px", gap: "0 8px", alignItems: "center", padding: "5px 0", borderBottom: `0.5px solid ${C.border}` }}>
                   <span style={{ fontSize: 11, color: C.ink1, fontWeight: 500 }}>{t.name}</span>
                   <div style={{ height: 4, background: C.border, borderRadius: 2, overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${Math.min(100, Math.round(pctOfTotal))}%`, background: C.blue, borderRadius: 2 }} />
                   </div>
                   <span style={{ fontSize: 10, color: C.ink2, textAlign: "right" as const }}>{fmt(annualNPS)}</span>
                   <span style={{ fontSize: 10, color: C.green, textAlign: "right" as const, fontWeight: 600 }}>{fmt(ownerAmt)}</span>
+                  <div style={{ display: "flex", justifyContent: "flex-end" }}><ConfTag type="estimated" /></div>
                 </div>
               );
             })}
           </div>
-          <div style={{ fontSize: 10, color: C.ink3, marginTop: 6, fontFamily: "monospace" }}>Gross NPS per territory → Saregama share ({ownerSplit}%)</div>
+          <div style={{ fontSize: 10, color: C.ink3, marginTop: 8, fontFamily: "monospace", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" as const }}>
+            <span>Gross NPS → Saregama share ({ownerSplit}%)</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}><ConfTag type="verified" /><span>confirmed data point</span></span>
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}><ConfTag type="estimated" /><span>industry benchmark — verify in data room</span></span>
+          </div>
         </>
       ) : (
         <>
-          {/* Legend */}
-          <div style={{ display: "flex", gap: 14, marginBottom: 12, flexWrap: "wrap" as const }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12, flexWrap: "wrap" as const }}>
             {[["Performance", "#2B5FD9"], ["Mechanical", "#157A52"], ["Sync", "#A05C0A"], ["Neighbouring rights", "#6B3FD9"]].map(([label, color]) => (
               <div key={label} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.ink2 }}>
                 <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
                 {label}
               </div>
             ))}
+            <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5 }}><ConfTag type="estimated" /><span style={{ fontSize: 10, color: C.ink3 }}>all splits — industry benchmarks</span></span>
           </div>
           {/* Cards grid */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
@@ -261,12 +275,13 @@ function TerritorySection({ territories, catalog, ownerSplit }: { territories: T
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.ink1, marginBottom: 1 }}>{t.name}</div>
                   <div style={{ fontSize: 10, color: C.ink3, fontFamily: "monospace", marginBottom: 8 }}>{t.share}% of intl revenue</div>
                   {streams.map(s => (
-                    <div key={s.label} title={s.note} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
-                      <span style={{ fontSize: 10, color: C.ink2, width: 82, flexShrink: 0 }}>{s.label}</span>
+                    <div key={s.label} title={s.note} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
+                      <span style={{ fontSize: 10, color: C.ink2, width: 80, flexShrink: 0 }}>{s.label}</span>
                       <div style={{ flex: 1, height: 6, background: C.border, borderRadius: 3, overflow: "hidden" }}>
                         <div style={{ height: "100%", width: `${s.pct}%`, background: s.color, borderRadius: 3 }} />
                       </div>
-                      <span style={{ fontSize: 10, fontWeight: 600, width: 26, textAlign: "right" as const, color: s.color }}>{s.pct}%</span>
+                      <span style={{ fontSize: 10, fontWeight: 600, width: 24, textAlign: "right" as const, color: s.color }}>{s.pct}%</span>
+                      <ConfTag type="estimated" />
                     </div>
                   ))}
                 </div>
@@ -456,16 +471,19 @@ export default function DealsPage() {
                   <div style={{ fontSize: 15, fontWeight: 700, color: C.ink1, marginBottom: 2 }}>{catalog.name}</div>
                   <div style={{ fontSize: 11, color: C.ink2, marginBottom: 8 }}>{catalog.owner}</div>
                   {[
-                    ["Catalog size", `${(catalog.catalogSize/1000).toFixed(0)}K songs`],
-                    ["Rights type", catalog.rightsType === "master_publishing" ? "Master + Publishing" : catalog.rightsType === "publishing_only" ? "Publishing only" : "Sync only"],
-                    ["Age profile", catalog.ageProfile],
-                    ["Language", catalog.primaryLanguage],
-                    ["Current intl. NPS", `${fmt(catalog.baseNPS)}/yr ✓ verified`],
-                    ["Seller asking price", fmt(catalog.sellerAsk)],
-                  ].map(([k, v]) => (
-                    <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `0.5px solid ${C.border}` }}>
-                      <span style={{ fontSize: 11, color: C.ink3 }}>{k}</span>
-                      <span style={{ fontSize: 11, color: k === "Seller asking price" ? C.amber : k.includes("verified") || k === "Current intl. NPS" ? C.green : C.ink1, fontWeight: 500, textAlign: "right" as const, maxWidth: 160 }}>{v}</span>
+                    ["Catalog size", `${(catalog.catalogSize/1000).toFixed(0)}K songs`, "estimated"],
+                    ["Rights type", catalog.rightsType === "master_publishing" ? "Master + Publishing" : catalog.rightsType === "publishing_only" ? "Publishing only" : "Sync only", "verified"],
+                    ["Age profile", catalog.ageProfile, "estimated"],
+                    ["Language", catalog.primaryLanguage, "estimated"],
+                    ["Current intl. NPS", `${fmt(catalog.baseNPS)}/yr`, "verified"],
+                    ["Seller asking price", fmt(catalog.sellerAsk), "verified"],
+                  ].map(([k, v, conf]) => (
+                    <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", borderBottom: `0.5px solid ${C.border}`, gap: 8 }}>
+                      <span style={{ fontSize: 11, color: C.ink3, flexShrink: 0 }}>{k}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end" }}>
+                        <span style={{ fontSize: 11, color: k === "Seller asking price" ? C.amber : k === "Current intl. NPS" ? C.green : C.ink1, fontWeight: 500, textAlign: "right" as const }}>{v}</span>
+                        <ConfTag type={conf as "verified" | "estimated"} />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -512,13 +530,16 @@ export default function DealsPage() {
                 ))}
               </div>
               {territories.map((t, i) => (
-                <div key={t.code} style={{ display: "grid", gridTemplateColumns: "1fr 48px 48px 52px", gap: "4px 6px", padding: "4px 0", borderBottom: `0.5px solid ${C.border}` }}>
+                <div key={t.code} style={{ display: "grid", gridTemplateColumns: "1fr 48px 48px 52px 72px", gap: "4px 6px", padding: "4px 0", borderBottom: `0.5px solid ${C.border}` }}>
                   <span style={{ fontSize: 11, color: C.ink1, display: "flex", alignItems: "center" }}>{t.name}</span>
                   {(["share","growth","collection"] as const).map(field => (
                     <input key={field} type="number" min={0} max={field==="collection"?100:field==="share"?100:25}
                       value={t[field]} onChange={e => updateTerritory(i, field, parseFloat(e.target.value)||0)}
                       style={{ fontSize: 11, padding: "3px 5px", textAlign: "center" as const, width: "100%" }} />
                   ))}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+                    <ConfTag type="estimated" />
+                  </div>
                 </div>
               ))}
               <div style={{ fontSize: 10, color: C.ink3, marginTop: 6, fontFamily: "monospace" }}>Share % · Growth %pa · Collection efficiency %</div>
