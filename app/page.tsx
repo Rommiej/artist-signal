@@ -7,6 +7,7 @@ import ScoreDisplay from "@/components/ScoreDisplay";
 import VelocityChart from "@/components/VelocityChart";
 import MemoGenerator from "@/components/MemoGenerator";
 import AddArtist from "@/components/AddArtist";
+import DocumentUpload from "@/components/DocumentUpload";
 
 const initials = (name: string) =>
   name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
@@ -238,6 +239,11 @@ function ArtistProfile({ artist, onBack }: { artist: Artist; onBack: () => void 
 
 export default function App() {
   const [selected, setSelected] = useState<Artist | null>(null);
+  const [uploadedArtistData, setUploadedArtistData] = useState<Record<string, any> | null>(null);
+
+  function handleArtistDocumentFields(extracted: Record<string, any>) {
+    setUploadedArtistData(extracted);
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#EEF2F9" }}>
@@ -284,6 +290,9 @@ export default function App() {
             <p style={{ fontFamily: "monospace", fontSize: 9, color: "#8E9BBF", marginBottom: 24 }}>
               Data: Spotify · Wikipedia · MusicMetricsVault · Billboard Philippines · IMP Concerts · public record
             </p>
+
+            <div className="section-label">Upload artist document</div>
+            <DocumentUpload module="artist_discovery" onFieldsApplied={handleArtistDocumentFields} />
 
             <div className="section-label">Analyse an artist</div>
             <AddArtist />

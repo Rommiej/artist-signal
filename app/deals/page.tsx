@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect, useRef } from "react";
 import Header from "@/components/Header";
+import DocumentUpload from "@/components/DocumentUpload";
 
 const C = {
   page: "#EEF2F9", card: "#FFFFFF", raised: "#F4F7FC", border: "#D0D8EE",
@@ -311,6 +312,7 @@ export default function DealsPage() {
   const [memoError, setMemoError] = useState("");
   const [memoGenerated, setMemoGenerated] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [calcModal, setCalcModal] = useState<Scenario | null>(null);
 
   const results: Results = useMemo(() => ({
     conservative: calcScenario(catalog.baseNPS, territories, termYears, ownerSplit, discountRate, recoupment, upliftPct, "conservative"),
@@ -377,6 +379,57 @@ export default function DealsPage() {
     setMemo(""); setMemoGenerated(false);
   }
 
+  function handleDocumentFields(extracted: Record<string, any>) {
+    // Map extracted field keys to catalog state
+    const fieldMap: Record<string, (v: any) => void> = {
+      catalog_name:            v => setCatalog(p => ({ ...p, name: String(v) })),
+      catalog_owner:           v => setCatalog(p => ({ ...p, owner: String(v) })),
+      catalog_size:            v => setCatalog(p => ({ ...p, catalogSize: Number(v) || p.catalogSize })),
+      seller_ask:              v => setCatalog(p => ({ ...p, sellerAsk: Number(v) || p.sellerAsk })),
+      catalog_description:     v => setCatalog(p => ({ ...p, description: String(v) })),
+      age_profile:             v => setCatalog(p => ({ ...p, ageProfile: String(v) })),
+      primary_language:        v => setCatalog(p => ({ ...p, primaryLanguage: String(v) })),
+      rights_type:             v => {
+        const s = String(v).toLowerCase();
+        const rt = s.includes("master") && s.includes("publish") ? "master_publishing"
+          : s.includes("publish") ? "publishing_only" : "sync_only";
+        setCatalog(p => ({ ...p, rightsType: rt as any }));
+      },
+      estimated_nps:           v => setCatalog(p => ({ ...p, baseNPS: Number(v) || p.baseNPS })),
+      international_revenue_usd: v => setCatalog(p => ({ ...p, baseNPS: Number(v) || p.baseNPS })),
+      yoy_growth:              v => {
+        // Apply as a default growth rate to all territories
+        const g = Number(v) || 0;
+        if (g > 0) setTerritories(prev => prev.map(t => ({ ...t, growth: Math.round(g) })));
+      },
+      territory_breakdown:     v => {
+        if (typeof v === "object" && v !== null) {
+          const entries = Object.entries(v);
+          const total = entries.reduce((s, [, val]) => s + Number(val), 0);
+          if (total > 0) {
+            setTerritories(prev => {
+              const updated = [...prev];
+              entries.forEach(([territory, value]) => {
+                const pct = Math.round((Number(value) / total) * 100);
+                const idx = updated.findIndex(t =>
+                  t.name.toLowerCase().includes(territory.toLowerCase()) ||
+                  territory.toLowerCase().includes(t.code.toLowerCase())
+                );
+                if (idx >= 0) updated[idx] = { ...updated[idx], share: pct };
+              });
+              return updated;
+            });
+          }
+        }
+      },
+    };
+    Object.entries(extracted).forEach(([key, value]) => {
+      if (fieldMap[key] && value !== null && value !== undefined) {
+        try { fieldMap[key](value); } catch {}
+      }
+    });
+  }
+
   const scenarioColors = {
     conservative: { c: C.red, lt: C.redLt, md: C.redMd, label: "Conservative", sub: "Status quo · no UMG uplift" },
     base: { c: C.blue, lt: C.blueLt, md: C.blueMd, label: "Base case", sub: "Market growth + UMG collection uplift" },
@@ -439,6 +492,7 @@ export default function DealsPage() {
                 <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" as const, color: C.ink3 }}>Catalog profile</div>
                 <button onClick={() => setShowEdit(!showEdit)} style={{ fontSize: 11, padding: "3px 8px" }}>{showEdit ? "Done" : "Edit"}</button>
               </div>
+              <DocumentUpload module="catalog_deals" onFieldsApplied={handleDocumentFields} />
               {showEdit ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {([["Catalog name", "name"], ["Owner", "owner"], ["Catalog size (songs)", "catalogSize"], ["Seller asking price (USD)", "sellerAsk"]] as [string, string][]).map(([label, key]) => (
@@ -555,12 +609,16 @@ export default function DealsPage() {
                 const r = results[sc];
                 const isActive = sc === activeScenario;
                 const { c, lt, md, label, sub } = scenarioColors[sc];
+                const growthMod = sc === "conservative" ? 0.5 : sc === "base" ? 1.0 : 1.5;
+                const drUsed = sc === "conservative" ? discountRate + 2 : sc === "base" ? discountRate : discountRate - 2;
+                const recoupUsed = sc === "conservative" ? Math.round((recoupment - 0.05) * 100) : sc === "base" ? Math.round(recoupment * 100) : Math.round((recoupment + 0.05) * 100);
+                const upliftUsed = sc === "conservative" ? 0 : sc === "base" ? upliftPct : Math.round(upliftPct * 1.5);
+                const blendedGrowth = territories.reduce((a, t) => a + t.growth * t.share / 100, 0) * growthMod + upliftUsed / 100;
                 return (
                   <div key={sc} onClick={() => setActiveScenario(sc)} style={{ background: isActive ? lt : C.card, border: `${isActive?"1.5px":"0.5px"} solid ${isActive?md:C.border}`, borderRadius: 10, padding: "14px 16px", cursor: "pointer", transition: "all 0.15s" }}>
                     <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: c, marginBottom: 6 }}>{label}</div>
                     <div style={{ fontSize: 26, fontWeight: 700, color: c, lineHeight: 1, marginBottom: 4 }}>{fmt(r.advance)}</div>
                     <div style={{ fontSize: 10, color: C.ink2, marginBottom: 6 }}>Recommended advance</div>
-                    {/* Seller ask comparison bar */}
                     <div style={{ marginBottom: 8 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: C.ink3, marginBottom: 3 }}>
                         <span>UMG value</span><span>Seller ask ${(sellerAsk/1e6).toFixed(1)}M</span>
@@ -574,11 +632,120 @@ export default function DealsPage() {
                       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}><span>UMG fee income</span><span style={{ fontWeight: 600, color: C.ink1 }}>{fmt(r.umgFeeIncome)}</span></div>
                       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}><span>Discount rate</span><span style={{ fontWeight: 600, color: C.ink1 }}>{r.discountRate}%</span></div>
                     </div>
-                    <div style={{ fontSize: 9, fontFamily: "monospace", color: c, marginTop: 6 }}>{sub}</div>
+                    <div style={{ fontSize: 9, fontFamily: "monospace", color: c, marginTop: 6, marginBottom: 8 }}>{sub}</div>
+                    {/* Calculations button */}
+                    <button
+                      onClick={e => { e.stopPropagation(); setCalcModal(sc); }}
+                      style={{ fontSize: 10, padding: "4px 10px", background: C.raised, border: `0.5px solid ${C.border}`, color: C.ink2, borderRadius: 6, width: "100%", cursor: "pointer" }}>
+                      Calculations
+                    </button>
                   </div>
                 );
               })}
             </div>
+
+            {/* Calculations modal */}
+            {calcModal && (() => {
+              const sc = calcModal;
+              const r = results[sc];
+              const { c, lt, md, label } = scenarioColors[sc];
+              const growthMod = sc === "conservative" ? 0.5 : sc === "base" ? 1.0 : 1.5;
+              const drUsed = sc === "conservative" ? discountRate + 2 : sc === "base" ? discountRate : discountRate - 2;
+              const recoupUsed = sc === "conservative" ? recoupment - 0.05 : sc === "base" ? recoupment : recoupment + 0.05;
+              const upliftUsed = sc === "conservative" ? 0 : sc === "base" ? upliftPct : Math.round(upliftPct * 1.5);
+              const blendedGrowth = (territories.reduce((a, t) => a + t.growth * t.share / 100, 0) * growthMod + upliftUsed / 100 * 100).toFixed(1);
+              const blendedCollection = (territories.reduce((a, t) => a + t.collection * t.share / 100, 0)).toFixed(0);
+              return (
+                <div onClick={() => setCalcModal(null)} style={{ position: "fixed" as const, inset: 0, background: "rgba(13,22,51,0.4)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+                  <div onClick={e => e.stopPropagation()} style={{ background: C.card, border: `1px solid ${md}`, borderRadius: 12, padding: "22px 26px", maxWidth: 560, width: "100%", maxHeight: "80vh", overflowY: "auto" as const, boxShadow: "0 8px 32px rgba(13,22,51,0.16)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                      <div>
+                        <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: c, marginBottom: 3 }}>{label} — Calculations</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: c }}>Recommended advance: {fmt(r.advance)}</div>
+                      </div>
+                      <button onClick={() => setCalcModal(null)} style={{ fontSize: 18, color: C.ink3, background: "none", border: "none", cursor: "pointer", padding: "0 4px" }}>×</button>
+                    </div>
+
+                    {/* Step 1 */}
+                    <div style={{ background: C.raised, borderRadius: 8, padding: "12px 14px", marginBottom: 10 }}>
+                      <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, color: C.ink3, letterSpacing: "0.08em", marginBottom: 8 }}>STEP 1 — SCENARIO ASSUMPTIONS</div>
+                      {[
+                        ["Base NPS (verified)", `${fmt(catalog.baseNPS)}/yr`],
+                        ["Growth rate modifier", sc === "conservative" ? "×0.5 (half of territory inputs)" : sc === "base" ? "×1.0 (territory inputs as entered)" : "×1.5 (1.5× territory inputs)"],
+                        ["UMG uplift applied", upliftUsed === 0 ? "None (conservative excludes uplift)" : `+${upliftUsed}%/yr`],
+                        ["Blended effective growth", `~${blendedGrowth}%/yr (weighted avg across territories)`],
+                        ["Blended collection efficiency", `${blendedCollection}% (weighted by territory share)`],
+                        ["Discount rate", `${drUsed}% (${sc === "conservative" ? "base +2% for higher risk" : sc === "base" ? "base rate as entered" : "base −2% for higher confidence"})`],
+                        ["Owner split", `${ownerSplit}% to Saregama / ${100 - ownerSplit}% UMG admin fee`],
+                        ["Term", `${termYears} years`],
+                        ["Recoupment comfort factor", `${Math.round(recoupUsed * 100)}% (${sc === "conservative" ? "conservative — protect UMG downside" : sc === "base" ? "standard" : "higher — confident in projections"})`],
+                      ].map(([k, v]) => (
+                        <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "3px 0", borderBottom: `0.5px solid ${C.border}` }}>
+                          <span style={{ fontSize: 11, color: C.ink3, flexShrink: 0 }}>{k}</span>
+                          <span style={{ fontSize: 11, color: C.ink1, textAlign: "right" as const }}>{v}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Step 2 */}
+                    <div style={{ background: C.raised, borderRadius: 8, padding: "12px 14px", marginBottom: 10 }}>
+                      <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, color: C.ink3, letterSpacing: "0.08em", marginBottom: 8 }}>STEP 2 — YEAR-BY-YEAR GROSS NPS</div>
+                      <div style={{ fontFamily: "monospace", fontSize: 10, color: C.ink2, background: C.card, borderRadius: 6, padding: "8px 10px", marginBottom: 8, lineHeight: 1.8 }}>
+                        Gross NPS (Y) = Base NPS × collection efficiency × (1 + growth)^(Y−1)
+                      </div>
+                      {r.years.map(y => (
+                        <div key={y.year} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderBottom: `0.5px solid ${C.border}` }}>
+                          <span style={{ fontSize: 11, color: C.ink3 }}>Year {y.year}</span>
+                          <span style={{ fontSize: 11, color: C.ink1 }}>{fmt(y.gross)} gross → {fmt(y.ownerShare)} owner share ({ownerSplit}%)</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Step 3 */}
+                    <div style={{ background: C.raised, borderRadius: 8, padding: "12px 14px", marginBottom: 10 }}>
+                      <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, color: C.ink3, letterSpacing: "0.08em", marginBottom: 8 }}>STEP 3 — DISCOUNTING TO PRESENT VALUE</div>
+                      <div style={{ fontFamily: "monospace", fontSize: 10, color: C.ink2, background: C.card, borderRadius: 6, padding: "8px 10px", marginBottom: 8, lineHeight: 1.8 }}>
+                        PV (Y) = Owner share (Y) ÷ (1 + {drUsed}%)^Y
+                      </div>
+                      {r.years.map(y => (
+                        <div key={y.year} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderBottom: `0.5px solid ${C.border}` }}>
+                          <span style={{ fontSize: 11, color: C.ink3 }}>Year {y.year}</span>
+                          <span style={{ fontSize: 11, color: C.blue }}>{fmt(y.ownerShare)} ÷ (1.{drUsed})^{y.year} = {fmt(y.pv)}</span>
+                        </div>
+                      ))}
+                      <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", marginTop: 2 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: C.ink1 }}>Term NPV (sum of PVs)</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: C.blue }}>{fmt(r.npv)}</span>
+                      </div>
+                    </div>
+
+                    {/* Step 4 */}
+                    <div style={{ background: lt, border: `0.5px solid ${md}`, borderRadius: 8, padding: "12px 14px" }}>
+                      <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, color: c, letterSpacing: "0.08em", marginBottom: 8 }}>STEP 4 — RECOMMENDED ADVANCE</div>
+                      <div style={{ fontFamily: "monospace", fontSize: 10, color: C.ink2, background: C.card, borderRadius: 6, padding: "8px 10px", marginBottom: 8, lineHeight: 1.8 }}>
+                        Advance = Term NPV × recoupment factor
+                      </div>
+                      <div style={{ fontSize: 13, color: C.ink2, lineHeight: 1.7 }}>
+                        {fmt(r.npv)} × {Math.round(recoupUsed * 100)}% = <span style={{ fontWeight: 700, color: c, fontSize: 16 }}>{fmt(r.advance)}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: C.ink2, marginTop: 8, lineHeight: 1.6 }}>
+                        The {Math.round(recoupUsed * 100)}% factor means UMG advances {Math.round(recoupUsed * 100)}% of the projected NPV rather than 100% — protecting against variance in actual collections. The remaining {Math.round((1 - recoupUsed) * 100)}% is the margin of safety.
+                      </div>
+                      <div style={{ marginTop: 10, paddingTop: 8, borderTop: `0.5px solid ${md}` }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+                          <span style={{ color: C.ink2 }}>Seller asking price</span>
+                          <span style={{ fontWeight: 700, color: C.amber }}>{fmt(sellerAsk)}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginTop: 3 }}>
+                          <span style={{ color: C.ink2 }}>Gap (seller ask − this scenario)</span>
+                          <span style={{ fontWeight: 700, color: sellerAsk > r.advance ? C.red : C.green }}>{fmt(sellerAsk - r.advance)} {sellerAsk > r.advance ? "over" : "under"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Year-by-year DCF */}
             <div style={{ ...CARD, marginBottom: 12 }}>
